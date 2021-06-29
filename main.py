@@ -17,8 +17,6 @@ highlightedGrid = []
 revealedLetters = []
 
 grid = []
-#gridNotTaken = []
-wordCordsInGrid = []
 
 rows = 10
 columns = 10
@@ -58,7 +56,9 @@ def generateWords(count = 10):
 def getRandomWord(wordList):
     word = random.choice(wordList).strip()
     word = word.lower()
-    if len(word) > rows and len(word) > columns and word not in words:
+    if len(word) > rows and len(word) > columns:
+        getRandomWord(wordList)
+    elif word in words:
         getRandomWord(wordList)
     else:
         words.append(word)
@@ -93,9 +93,6 @@ def addWordsToGrid(wordsToAdd):
     addToGrid(newWords, 0)
 
 def addToGrid(wordsToAdd, count):
-    print(wordsToAdd)
-    print("count")
-    print(count)
     if count < len(wordsToAdd):
         freeSpace = []
         for r in range(rows):
@@ -106,11 +103,9 @@ def addToGrid(wordsToAdd, count):
         if ifAblePlaceWordRandomly(freeSpace, wordsToAdd[count]):
             count +=1
         else:
-            count -=1
-            for cord in wordCordsInGrid[count]:
-                grid[cord[0]][cord[1]].locked = False
-
-            del wordCordsInGrid[count]
+            grid.clear()
+            createGrid()
+            count = 0
         addToGrid(wordsToAdd, count)
 
 def ifSpaceOnGridForWord(freeSpace, word):
@@ -200,45 +195,32 @@ def canGoLeft(word, row, column):
     return True
 
 def placeLeft(word, row, column):
-    cordsOfWord = []
     for x in range(len(word)):
         grid[row][column].locked = True
-        cordsOfWord.append((row, column))
         grid[row][column].changeText(word[x])
         row -=1
-    wordCordsInGrid.append(cordsOfWord)
 
 def placeUp(word, row, column):
-    cordsOfWord = []
     for x in range(len(word)):
         grid[row][column].locked = True
-        cordsOfWord.append((row, column))
         grid[row][column].changeText(word[x])
         column -=1
-    wordCordsInGrid.append(cordsOfWord)
 
 def placeDown(word, row, column):
-    cordsOfWord = []
     for x in range(len(word)):
         grid[row][column].locked = True
-        cordsOfWord.append((row, column))
         grid[row][column].changeText(word[x])
         column +=1
-    wordCordsInGrid.append(cordsOfWord)
 
 def placeRight(word, row, column):
-    cordsOfWord = []
     for x in range(len(word)):
         grid[row][column].locked = True
-        cordsOfWord.append((row, column))
         grid[row][column].changeText(word[x])
         row +=1
-    wordCordsInGrid.append(cordsOfWord)
 
 def isHorizontal(buttons):
     if len(buttons) < 1:
         return
-
     previous = buttons[0]
 
     for item in buttons:
@@ -251,6 +233,7 @@ def isVertical(buttons):
     if len(buttons) < 1:
         return
     previous = buttons[0]
+
     for item in buttons:
         if item.y != previous.y:
             return False
@@ -330,7 +313,6 @@ class button():
 def newPuzzle():
     win.fill((255, 255, 255))
     words.clear()
-    wordCordsInGrid.clear()
     wordsSpotted.clear()
     wordsText.clear()
     highlightedLetters.clear()
@@ -405,12 +387,10 @@ while run:
             dragging = False
 
             if not isHorizontal(highlightedLetters) and not isConsecutiveHorizontal(highlightedGrid):
-                print("blah")
                 for x in highlightedLetters:
                     x.color = (255, 255, 255)
 
             elif not isVertical(highlightedLetters) and not isConsecutiveVertical(highlightedGrid):
-                print("vertz")
                 for x in highlightedLetters:
                     x.color = (255, 255, 255)
 
