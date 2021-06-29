@@ -17,12 +17,13 @@ highlightedGrid = []
 revealedLetters = []
 
 grid = []
-gridNotTaken = []
+#gridNotTaken = []
+wordCordsInGrid = []
 
 rows = 10
 columns = 10
 
-print(pygame.font.get_fonts())
+#print(pygame.font.get_fonts())
 
 wordsFont = pygame.font.SysFont("cambria", 40)
 alphabet = string.ascii_lowercase
@@ -47,31 +48,18 @@ def drawWords():
 
 def generateWords(count = 10):
     wordListFile = open('wordList.txt')
-    content = wordListFile.readlines()
+    wordListContent = wordListFile.readlines()
 
     for i in range(count):
-        wordInRange(content)
+        getRandomWord(wordListContent)
 
-    count = 0
+    wordListFile.close()
 
-    for word in words:
-        for x in word:
-            count +=1
-
-    percentageOfGrid = count / (columns * rows)
-
-    if percentageOfGrid >= 0.44:
-        words.clear()
-        generateWords(7)
-
-    else:
-        wordListFile.close()
-
-def wordInRange(wordList):
+def getRandomWord(wordList):
     word = random.choice(wordList).strip()
-
+    word = word.lower()
     if len(word) > rows and len(word) > columns and word not in words:
-        wordInRange(wordList)
+        getRandomWord(wordList)
     else:
         words.append(word)
 
@@ -105,38 +93,63 @@ def addWordsToGrid(wordsToAdd):
     addToGrid(newWords, 0)
 
 def addToGrid(wordsToAdd, count):
-    count += 1
-    if count >= 100:
-        #-----------------------------------
-        #print(words)
-        #print('count exceeded 99')
-        addWordsToGrid(words)
-    if len(wordsToAdd) > 0:
+    print(wordsToAdd)
+    print("count")
+    print(count)
+    if count < len(wordsToAdd):
         freeSpace = []
         for r in range(rows):
             for c in range(columns):
                 if grid[r][c].locked is False:
-                    freeSpace.append((r,c))
+                    freeSpace.append((r, c))
 
-        randomCord = random.choice(freeSpace)
-        randomWord = random.choice(wordsToAdd)
+        if ifAblePlaceWordRandomly(freeSpace, wordsToAdd[count]):
+            count +=1
+        else:
+            count -=1
+            for cord in wordCordsInGrid[count]:
+                grid[cord[0]][cord[1]].locked = False
 
-        if canGoLeft(randomWord, randomCord[0], randomCord[1]):
-            placeLeft(randomWord, randomCord[0], randomCord[1])
-            wordsToAdd.remove(randomWord)
-
-        elif canGoUp(randomWord, randomCord[0], randomCord[1]):
-            placeUp(randomWord, randomCord[0], randomCord[1])
-            wordsToAdd.remove(randomWord)
-
-        elif canGoDown(randomWord, randomCord[0], randomCord[1]):
-            placeDown(randomWord, randomCord[0], randomCord[1])
-            wordsToAdd.remove(randomWord)
-
-        elif canGoRight(randomWord, randomCord[0], randomCord[1]):
-            placeRight(randomWord, randomCord[0], randomCord[1])
-            wordsToAdd.remove(randomWord)
+            del wordCordsInGrid[count]
         addToGrid(wordsToAdd, count)
+
+def ifSpaceOnGridForWord(freeSpace, word):
+    for cord in freeSpace:
+        if canGoLeft(word, cord[0], cord[1]):
+            return True
+
+        elif canGoUp(word, cord[0], cord[1]):
+            return True
+
+        elif canGoDown(word, cord[0], cord[1]):
+            return True
+
+        elif canGoRight(word, cord[0], cord[1]):
+            return True
+    return False
+
+def ifAblePlaceWordRandomly(freeSpace, word):
+    randomCord = random.choice(freeSpace)
+    freeSpace.remove(randomCord)
+
+    if canGoLeft(word, randomCord[0], randomCord[1]):
+        placeLeft(word, randomCord[0], randomCord[1])
+        return True
+
+    elif canGoUp(word, randomCord[0], randomCord[1]):
+        placeUp(word, randomCord[0], randomCord[1])
+        return True
+
+    elif canGoDown(word, randomCord[0], randomCord[1]):
+        placeDown(word, randomCord[0], randomCord[1])
+        return True
+
+    elif canGoRight(word, randomCord[0], randomCord[1]):
+        placeRight(word, randomCord[0], randomCord[1])
+        return True
+    elif len(freeSpace) == 0:
+        return False
+    return ifAblePlaceWordRandomly(freeSpace, word)
 
 def canGoDown(word, row, column):
     for x in range(len(word) - 1):
@@ -187,30 +200,42 @@ def canGoLeft(word, row, column):
     return True
 
 def placeLeft(word, row, column):
+    cordsOfWord = []
     for x in range(len(word)):
         grid[row][column].locked = True
+        cordsOfWord.append((row, column))
         grid[row][column].changeText(word[x])
         row -=1
+    wordCordsInGrid.append(cordsOfWord)
 
 def placeUp(word, row, column):
+    cordsOfWord = []
     for x in range(len(word)):
         grid[row][column].locked = True
+        cordsOfWord.append((row, column))
         grid[row][column].changeText(word[x])
         column -=1
+    wordCordsInGrid.append(cordsOfWord)
 
 def placeDown(word, row, column):
+    cordsOfWord = []
     for x in range(len(word)):
         grid[row][column].locked = True
+        cordsOfWord.append((row, column))
         grid[row][column].changeText(word[x])
         column +=1
+    wordCordsInGrid.append(cordsOfWord)
 
 def placeRight(word, row, column):
+    cordsOfWord = []
     for x in range(len(word)):
         grid[row][column].locked = True
+        cordsOfWord.append((row, column))
         grid[row][column].changeText(word[x])
         row +=1
+    wordCordsInGrid.append(cordsOfWord)
 
-def isSideways(buttons):
+def isHorizontal(buttons):
     if len(buttons) < 1:
         return
 
@@ -225,9 +250,7 @@ def isSideways(buttons):
 def isVertical(buttons):
     if len(buttons) < 1:
         return
-
     previous = buttons[0]
-
     for item in buttons:
         if item.y != previous.y:
             return False
@@ -259,11 +282,9 @@ def isConsecutiveVertical(buttons):
 def isConsecutiveHorizontal(buttons):
     if len(buttons) < 1:
         return False
-
     xCordinates = []
     min = buttons[0][0]
     max = buttons[0][0]
-
     for item in buttons:
         xCordinates.append(item[0])
         if item[0] > max:
@@ -275,10 +296,7 @@ def isConsecutiveHorizontal(buttons):
         if min not in xCordinates:
             return False
         min += 1
-
     return True
-
-
 
 class button():
     def __init__(self, color, x, y, width, height, text='', locked=False):
@@ -310,7 +328,9 @@ class button():
         self.text = newText
 
 def newPuzzle():
+    win.fill((255, 255, 255))
     words.clear()
+    wordCordsInGrid.clear()
     wordsSpotted.clear()
     wordsText.clear()
     highlightedLetters.clear()
@@ -321,14 +341,13 @@ def newPuzzle():
     generateWords(7)
     createWordsText()
     addWordsToGrid(words)
+    drawWords()
 
 def redrawGameWindow():
-    win.fill((255, 255, 255))
     newGameButton.draw(win, (0, 0, 0))
     for r in range(rows):
         for c in range(columns):
             grid[r][c].draw(win, (0, 0, 0))
-    drawWords()
     pygame.display.update()
 
 def isInWords(listOfButtons):
@@ -349,14 +368,16 @@ def isInWords(listOfButtons):
     return False
 
 
+win.fill((255, 255, 255))
 createGrid()
 generateWords(7)
 createWordsText()
 addWordsToGrid(words)
-
+drawWords()
 newGameButton = button((0, 255, 0), 500, 320, 85, 50, 'New')
 run = True
 dragging = False
+
 while run:
     clock.tick(30)
 
@@ -383,12 +404,13 @@ while run:
         if event.type == pygame.MOUSEBUTTONUP:
             dragging = False
 
-
-            if not isSideways(highlightedLetters) and not isConsecutiveHorizontal(highlightedGrid):
+            if not isHorizontal(highlightedLetters) and not isConsecutiveHorizontal(highlightedGrid):
+                print("blah")
                 for x in highlightedLetters:
                     x.color = (255, 255, 255)
 
             elif not isVertical(highlightedLetters) and not isConsecutiveVertical(highlightedGrid):
+                print("vertz")
                 for x in highlightedLetters:
                     x.color = (255, 255, 255)
 
@@ -398,6 +420,8 @@ while run:
             else:
                 for item in highlightedLetters:
                     revealedLetters.append(item)
+                    win.fill((255, 255, 255))
+                    drawWords()
             highlightedLetters.clear()
             highlightedGrid.clear()
 
